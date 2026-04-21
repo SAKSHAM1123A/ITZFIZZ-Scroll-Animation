@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ITZFIZZ — Scroll Animation</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;600&family=Barlow:wght@300;400&display=swap" rel="stylesheet" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+  <style>
+    :root {
+      --bg:     #d9d7d2;
+      --road:   #181818;
+      --accent: #ff6b00;
+      --text:   #111;
+      --muted:  #777;
+      --green:  #00d084;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+
+    body {
+      background: var(--bg);
+      font-family: 'Barlow', sans-serif;
+      overflow-x: hidden;
+    }
+
+   
+    #pin-container {
+     
+      height: 500vh;
+      position: relative;
+    }
+
+    #sticky-hero {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    
+    .bg-grey {
+      position: absolute;
+      inset: 0;
+      background: var(--bg);
+      z-index: 0;
+    }
+
+    
+    .road-band {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 21vh;
+      min-height: 110px;
+      max-height: 200px;
+      background: var(--road);
+      z-index: 1;
+    }
+
+    
+    .road-band::before,
+    .road-band::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      height: 2px;
+    }
+    .road-band::before {
+      top: 0;
+      background: linear-gradient(90deg, rgba(255,255,255,.18), transparent 40%, rgba(255,255,255,.18));
+    }
+    .road-band::after {
+      bottom: 0;
+      background: linear-gradient(90deg, rgba(255,255,255,.10), transparent 40%, rgba(255,255,255,.10));
+    }
+
+    
+    .road-center {
+      position: absolute;
+      top: 50%;
+      left: 0; right: 0;
+      height: 2px;
+      transform: translateY(-50%);
+      background: repeating-linear-gradient(
+        90deg,
+        rgba(255,255,255,.22) 0px,
+        rgba(255,255,255,.22) 50px,
+        transparent 50px,
+        transparent 110px
+      );
+    }
+
+    #start-strip {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 22px;
+      height: 21vh;
+      min-height: 110px;
+      max-height: 200px;
+      background: var(--green);
+      z-index: 3;
+      opacity: 0;
+    }
+
+    #car-wrap {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      transform: translate(-110%, -50%);
+      z-index: 4;
+      will-change: transform;
+    }
+
+    #car-img {
+      display: block;
+      width: clamp(160px, 20vw, 300px);
+      filter: drop-shadow(0 14px 32px rgba(0,0,0,.5));
+    }
+
+    nav {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      z-index: 20;
+      padding: 1.6rem 4vw;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      opacity: 0;
+    }
+    .nav-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.4rem;
+      letter-spacing: .35em;
+      color: var(--text);
+    }
+    .nav-links {
+      display: flex; gap: 2.5rem;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .72rem;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .nav-links a { text-decoration: none; color: inherit; transition: color .2s; }
+    .nav-links a:hover { color: var(--text); }
+
+   
+    .headline-wrap {
+      position: absolute;
+      top: 50%;
+      left: 4vw;
+      transform: translateY(-310%);
+      z-index: 10;
+      pointer-events: none;
+    }
+    .headline {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(4.5rem, 11vw, 10rem);
+      line-height: .9;
+      letter-spacing: .18em;
+      color: var(--text);
+      display: flex;
+      gap: 0 .05em;
+      flex-wrap: wrap;
+    }
+    .headline .char {
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(40px);
+    }
+    .headline .space { width: .45em; }
+
+   
+    .stats-wrap {
+      position: absolute;
+      bottom: 7vh;
+      left: 4vw; right: 4vw;
+      z-index: 20;
+      display: flex;
+      gap: 0;
+      border-top: 1px solid rgba(0,0,0,.13);
+    }
+    .stat {
+      flex: 1;
+      padding: 1.1rem 1.4rem 0;
+      border-right: 1px solid rgba(0,0,0,.1);
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    .stat:last-child { border-right: none; }
+    .stat:first-child { padding-left: 0; }
+
+    .stat-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2rem, 3.5vw, 3rem);
+      line-height: 1;
+      color: var(--text);
+      letter-spacing: .04em;
+    }
+    .stat-num em { font-style: normal; color: var(--accent); }
+    .stat-desc {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .68rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: .3rem;
+    }
+
+    
+    .scroll-hint {
+      position: absolute;
+      bottom: 2.5vh;
+      right: 4vw;
+      z-index: 20;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .6rem;
+      letter-spacing: .3em;
+      text-transform: uppercase;
+      color: var(--muted);
+      opacity: 0;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .scroll-hint::before {
+      content: '';
+      display: block;
+      width: 24px;
+      height: 1px;
+      background: currentColor;
+    }
+
+    
+    #section2 {
+      background: var(--road);
+      color: #f0ede8;
+      padding: 12vh 4vw;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    #section2::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent) 40%, transparent);
+    }
+
+    .s2-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .68rem;
+      letter-spacing: .42em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    .s2-heading {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3.5rem, 8vw, 8rem);
+      letter-spacing: .1em;
+      line-height: .92;
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    .s2-body {
+      font-size: .9rem;
+      color: rgba(240,237,232,.45);
+      max-width: 460px;
+      line-height: 1.72;
+      margin-top: 2.5rem;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(4,1fr);
+      gap: 1px;
+      margin-top: 6vh;
+      border: 1px solid rgba(255,255,255,.06);
+    }
+    .feature {
+      padding: 2rem 2rem 2.8rem;
+      border-right: 1px solid rgba(255,255,255,.06);
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    .feature:last-child { border-right: none; }
+    .f-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3rem;
+      line-height: 1;
+      color: rgba(255,107,0,.18);
+    }
+    .f-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .95rem;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      margin-top: .6rem;
+    }
+    .f-desc {
+      font-size: .75rem;
+      color: rgba(240,237,232,.4);
+      margin-top: .6rem;
+      line-height: 1.62;
+    }
+
+    @media (max-width: 768px) {
+      .features { grid-template-columns: 1fr 1fr; }
+      .stats-wrap { flex-wrap: wrap; }
+      .stat { flex: 1 1 45%; }
+      .nav-links { display: none; }
+    }
+    @media (max-width: 480px) {
+      .features { grid-template-columns: 1fr; }
+      .stat { flex: 1 1 100%; }
+    }
+  </style>
+</head>
+<body>
+
+
+<div id="pin-container">
+  <div id="sticky-hero">
+
+    <div class="bg-grey"></div>
+
+  
+    <div class="road-band">
+      <div class="road-center"></div>
+    </div>
+
+   
+    <div id="start-strip"></div>
+
+    
+    <div id="car-wrap">
+      <img
+        id="car-img"
+        src="https://paraschaturvedi.github.io/car-scroll-animation/McLaren%20720S%202022%20top%20view.png"
+        alt="McLaren 720S top view"
+        crossorigin="anonymous"
+      />
+    </div>
+
+    
+    <div class="headline-wrap">
+      <div class="headline" id="headline" aria-label="WELCOME ITZFIZZ"></div>
+    </div>
+
+   
+    <nav id="nav">
+      <div class="nav-logo">ITZFIZZ</div>
+      <div class="nav-links">
+        <a href="#">Platform</a>
+        <a href="#">Solutions</a>
+        <a href="#">Case Studies</a>
+        <a href="#">About</a>
+      </div>
+    </nav>
+
+  
+    <div class="stats-wrap" id="statsWrap">
+      <div class="stat">
+        <div class="stat-num"><em>58%</em></div>
+        <div class="stat-desc">Increase in pick-up point use</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num"><em>23%</em></div>
+        <div class="stat-desc">Decrease in customer phone calls</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num"><em>27%</em></div>
+        <div class="stat-desc">Increase in pick-up point use</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num"><em>40%</em></div>
+        <div class="stat-desc">Decrease in customer phone calls</div>
+      </div>
+    </div>
+
+    <div class="scroll-hint" id="scrollHint">Scroll to drive</div>
+
+  </div>
+</div>
+
+
+<section id="section2">
+  <div class="s2-label">— Our Platform</div>
+  <h2 class="s2-heading">BUILT FOR<br>THOSE WHO<br>DEMAND MORE</h2>
+  <p class="s2-body">ITZFIZZ reimagines logistics at every touchpoint — from real-time routing intelligence to seamless communication that keeps satisfaction high and friction low.</p>
+  <div class="features">
+    <div class="feature">
+      <div class="f-num">01</div>
+      <div class="f-title">Smart Routing</div>
+      <div class="f-desc">Adaptive algorithms that learn your network and optimise delivery paths in real time.</div>
+    </div>
+    <div class="feature">
+      <div class="f-num">02</div>
+      <div class="f-title">Live Visibility</div>
+      <div class="f-desc">End-to-end tracking that keeps customers informed without a single support call.</div>
+    </div>
+    <div class="feature">
+      <div class="f-num">03</div>
+      <div class="f-title">Zero Friction</div>
+      <div class="f-desc">Frictionless pickup that turns a routine task into a delightful brand moment.</div>
+    </div>
+    <div class="feature">
+      <div class="f-num">04</div>
+      <div class="f-title">Deep Analytics</div>
+      <div class="f-desc">Dashboards that surface the insights your operations team actually needs.</div>
+    </div>
+  </div>
+</section>
+
+<script>
+  gsap.registerPlugin(ScrollTrigger);
+
+  const hlEl = document.getElementById('headline');
+  [...'WELCOME ITZFIZZ'].forEach(ch => {
+    const s = document.createElement('span');
+    if (ch === ' ') { s.className = 'space'; s.innerHTML = '&nbsp;'; }
+    else            { s.className = 'char'; s.textContent = ch; }
+    hlEl.appendChild(s);
+  });
+
+  const vw = () => window.innerWidth;
+  const vh = () => window.innerHeight;
+
+  const intro = gsap.timeline({
+    defaults: { ease: 'expo.out' },
+    onComplete() {
+      ScrollTrigger.refresh();
+    }
+  });
+
+  intro.to('#nav', { opacity: 1, y: 0, duration: .9 }, 0.1);
+
+  intro.to('#start-strip', { opacity: 1, duration: .2 }, 0.3);
+
+  intro.fromTo('#car-wrap',
+    { x: '-110%', y: '-50%' },
+    { x: vw() * 0.06 + 'px', y: '-50%', duration: 1.3, ease: 'expo.out' },
+    0.35
+  );
+
+  
+  intro.to('#start-strip', { opacity: 0, duration: .35 }, 0.85);
+
+  
+  intro.to('.headline .char', {
+    opacity: 1, y: 0,
+    duration: .8,
+    stagger: .045,
+    ease: 'power3.out'
+  }, 0.55);
+
+
+  intro.to('.stat', {
+    opacity: 1, y: 0,
+    duration: .6,
+    stagger: .1,
+    ease: 'power3.out'
+  }, 1.2);
+
+ 
+  intro.to('#scrollHint', { opacity: 1, duration: .5 }, 1.9);
+
+
+  ScrollTrigger.create({
+    trigger: '#pin-container',
+    start: 'top top',
+    end: 'bottom bottom',
+    scrub: 1.8,
+    onUpdate(self) {
+      const p  = self.progress;                 
+      const startX = vw() * 0.06;               
+      const endX   = vw() * 1.18;                
+      const carX   = startX + (endX - startX) * p;
+
+      
+      const bounce = Math.sin(p * Math.PI * 10) * 2.5;
+
+      gsap.set('#car-wrap', {
+        x: carX,
+        y: `calc(-50% + ${bounce}px)`
+      });
+
+     
+      const statsOpacity = p > 0.75 ? 1 - (p - 0.75) / 0.25 : 1;
+      gsap.set('#statsWrap', { opacity: statsOpacity });
+
+     
+      gsap.set('#scrollHint', { opacity: p < 0.04 ? 1 - p * 25 : 0 });
+
+      
+      const hlOpacity = p > 0.6 ? 1 - (p - 0.6) / 0.3 : 1;
+      gsap.set('.headline .char', { opacity: hlOpacity });
+    }
+  });
+
+
+  ScrollTrigger.create({
+    trigger: '#section2',
+    start: 'top 82%',
+    once: true,
+    onEnter() {
+      gsap.to('.s2-label',   { opacity: 1, y: 0, duration: .8, ease: 'expo.out' });
+      gsap.to('.s2-heading', { opacity: 1, y: 0, duration: 1,  ease: 'expo.out', delay: .12 });
+      gsap.to('.s2-body',    { opacity: 1, y: 0, duration: .9, ease: 'power3.out', delay: .26 });
+      gsap.to('.feature',    {
+        opacity: 1, y: 0,
+        duration: .8, stagger: .12,
+        ease: 'power3.out', delay: .4
+      });
+    }
+  });
+
+ 
+  window.addEventListener('resize', () => ScrollTrigger.refresh());
+</script>
+</body>
+</html>
